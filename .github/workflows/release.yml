@@ -104,11 +104,22 @@ jobs:
           rm -rf traefik-crds
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
+      - name: Prepare GPG
+        run: |
+          echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 --decode > /tmp/private.key
+          gpg --batch --import /tmp/private.key
+        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+
+      - name: Package and sign chart
+        run: |
+          helm package --dependency-update ./traefik --sign --key 'traefik-helm-sign-test' --destination ./pkg
+        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+
       - name: Publish Helm chart
         uses: stefanprodan/helm-gh-pages@master
         with:
           token: ${{ secrets.CHARTS_TOKEN }}
-          charts_dir: .
+          charts_dir: ./pkg
           charts_url: https://bpsoraggi.github.io/charts
           owner: bpsoraggi
           repository: charts
