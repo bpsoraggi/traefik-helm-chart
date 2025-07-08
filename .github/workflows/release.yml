@@ -3,7 +3,7 @@ name: Release Charts
 on:
   push:
     branches:
-      - master
+      - chore/signed-release-test
 
 env:
   tag_prefix: v
@@ -106,25 +106,25 @@ jobs:
         with:
           token: ${{ secrets.CHARTS_TOKEN }}
           charts_dir: .
-          charts_url: https://traefik.github.io/charts
-          owner: traefik
+          charts_url: https://bpsoraggi.github.io/charts
+          owner: bpsoraggi
           repository: charts
-          branch: master
+          branch: main
           target_dir: traefik
           index_dir: .
-          commit_username: traefiker
-          commit_email: 30906710+traefiker@users.noreply.github.com
+          commit_username: bpsoraggi
+          commit_email: barbara.soraggi@sga.pucminas.br
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart to the ghcr.io registry
         uses: appany/helm-oci-chart-releaser@v0.4.2
         with:
           name: traefik
-          repository: traefik/helm
+          repository: bpsoraggi/helm
           tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
           path: ./traefik
           registry: ghcr.io
-          registry_username: traefiker
+          registry_username: bpsoraggi
           registry_password: ${{ secrets.GHCR_TOKEN }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
@@ -138,15 +138,15 @@ jobs:
             -a version="${{ steps.chart_version.outputs.CHART_VERSION }}" \
             -a commitSha="$GITHUB_SHA" \
             -a buildDate="$(date +%F)" \
-            ghcr.io/traefik/helm/traefik:${{ steps.chart_version.outputs.CHART_VERSION }}
+            ghcr.io/bpsoraggi/helm/traefik:${{ steps.chart_version.outputs.CHART_VERSION }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Trigger hub-doc synchronization workflow
-        env:
-          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        run: |
-          gh workflow run -R traefik/hub-doc "🏗️ Sync helm-chart" -F CHART_VERSION=${{ steps.tag_version.outputs.new_tag }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Trigger hub-doc synchronization workflow
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      #   run: |
+      #     gh workflow run -R traefik/hub-doc "🏗️ Sync helm-chart" -F CHART_VERSION=${{ steps.tag_version.outputs.new_tag }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
   traefik-crds:
     runs-on: ubuntu-latest
@@ -235,25 +235,25 @@ jobs:
         with:
           token: ${{ secrets.CHARTS_TOKEN }}
           charts_dir: .
-          charts_url: https://traefik.github.io/charts
-          owner: traefik
+          charts_url: https://bpsoraggi.github.io/charts
+          owner: bpsoraggi
           repository: charts
-          branch: master
+          branch: main
           target_dir: traefik-crds
           index_dir: .
-          commit_username: traefiker
-          commit_email: 30906710+traefiker@users.noreply.github.com
+          commit_username: bpsoraggi
+          commit_email: barbara.soraggi@sga.pucminas.br
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart to the ghcr.io registry
         uses: appany/helm-oci-chart-releaser@v0.4.2
         with:
           name: traefik-crds
-          repository: traefik/helm
+          repository: bpsoraggi/helm
           tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
           path: ./traefik-crds
           registry: ghcr.io
-          registry_username: traefiker
+          registry_username: bpsoraggi
           registry_password: ${{ secrets.GHCR_TOKEN }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
@@ -267,5 +267,5 @@ jobs:
             -a version="${{ steps.chart_version.outputs.CHART_VERSION }}" \
             -a commitSha="$GITHUB_SHA" \
             -a buildDate="$(date +%F)" \
-            ghcr.io/traefik/helm/traefik-crds:${{ steps.chart_version.outputs.CHART_VERSION }}
+            ghcr.io/bpsoraggi/helm/traefik-crds:${{ steps.chart_version.outputs.CHART_VERSION }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
