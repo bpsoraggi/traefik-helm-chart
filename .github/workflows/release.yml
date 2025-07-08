@@ -262,10 +262,6 @@ jobs:
           commit_email: ${{ secrets.GH_EMAIL }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Login to GitHub Container Registry
-        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
-
       - name: Publish Helm chart to the ghcr.io registry
         uses: appany/helm-oci-chart-releaser@v0.4.2
         with:
