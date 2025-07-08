@@ -104,30 +104,25 @@ jobs:
           rm -rf traefik-crds
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Prepare GPG
+      - name: Prepare GPG key for signing
         run: |
-          echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 --decode > /tmp/private.key
-          gpg --batch --import /tmp/private.key
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
-
-      - name: Package and sign chart
-        run: |
-          helm package --dependency-update ./traefik --sign --key 'traefik-helm-sign-test' --destination ./pkg
+          gpg_dir=.cr-gpg
+          mkdir "$gpg_dir"
+          keyring="$gpg_dir/secring.gpg"
+          echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 -d > "$keyring"
+          passphrase_file="$gpg_dir/passphrase"
+          echo "${{ secrets.GPG_PASSPHRASE }}" > "$passphrase_file"
+          echo "CR_PASSPHRASE_FILE=$passphrase_file" >> "$GITHUB_ENV"
+          echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV"
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart
-        uses: stefanprodan/helm-gh-pages@master
+        uses: helm/chart-releaser-action@v1.7.0
         with:
-          token: ${{ secrets.CHARTS_TOKEN }}
-          charts_dir: ./pkg
-          charts_url: https://bpsoraggi.github.io/charts
-          owner: bpsoraggi
-          repository: charts
-          branch: main
-          target_dir: traefik
-          index_dir: .
-          commit_username: bpsoraggi
-          commit_email: ${{ secrets.GH_EMAIL }}
+          config: cr.yaml
+          charts_dir: .
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart to the ghcr.io registry
