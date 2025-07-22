@@ -119,10 +119,11 @@ jobs:
       - name: Publish Helm chart
         uses: helm/chart-releaser-action@v1.7.0
         with:
-          config: cr.yaml
           charts_dir: .
         env:
           CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_KEY: traefik-helm-sign-test
+          CR_SIGN: true
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart to the ghcr.io registry
