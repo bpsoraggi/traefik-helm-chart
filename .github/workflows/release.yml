@@ -122,17 +122,6 @@ jobs:
       #     echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV"
       #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      # - name: Publish Helm chart
-      #   uses: helm/chart-releaser-action@v1.7.0
-      #   with:
-      #     charts_dir: .
-      #   env:
-      #     CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CR_KEY: traefik-helm-sign-test
-      #     CR_SIGN: true
-      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
-
-
 
 
 
@@ -148,28 +137,46 @@ jobs:
 
       # Helm requires the legacy GPG format
       # @link https://helm.sh/docs/topics/provenance/#the-workflow
-      - name: Convert GPG v2 key
+      - name: Prepare GPG key
         run: |
           gpg --export > ~/.gnupg/pubring.gpg
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
-        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
-      - name: Chart | Push and sign
-        uses: appany/helm-oci-chart-releaser@v0.5.0
-        with:
-          name: traefik
-          repository: bpsoraggi/helm
-          tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
-          path: ./traefik
-          registry: ghcr.io
-          registry_username: bpsoraggi
-          registry_password: ${{ secrets.GHCR_TOKEN }}
-          sign: true
-          signing_key: ${{ steps.gpg.outputs.name }}
-          signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          update_dependencies: 'true' # Defaults to false
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor > $HOME/secring.gpg
+          echo "${{ secrets.GPG_PASSPHRASE }}" > $HOME/passphrase.txt
+          echo "CR_KEYRING=$HOME/secring.gpg" >> "$GITHUB_ENV"
+          echo "CR_PASSPHRASE_FILE=$HOME/passphrase.txt" >> "$GITHUB_ENV"
         # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      # helm pull ghcr.io/appany/my-chart:0.1.0
+
+
+
+
+      - name: Publish Helm chart
+        uses: helm/chart-releaser-action@v1.7.0
+        with:
+          charts_dir: .
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_KEY:  ${{ steps.gpg.outputs.name }}
+          CR_SIGN: true
+        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+
+
+      # - name: Publish Helm chart to the ghcr.io registry
+      #   uses: appany/helm-oci-chart-releaser@v0.5.0
+      #   with:
+      #     name: traefik
+      #     repository: bpsoraggi/helm
+      #     tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
+      #     path: ./traefik
+      #     registry: ghcr.io
+      #     registry_username: bpsoraggi
+      #     registry_password: ${{ secrets.GHCR_TOKEN }}
+      #     sign: true
+      #     signing_key: ${{ steps.gpg.outputs.name }}
+      #     signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      #     update_dependencies: 'true' # Defaults to false
+      #   # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
 
 
