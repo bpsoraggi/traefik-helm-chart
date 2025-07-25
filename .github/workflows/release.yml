@@ -113,40 +113,51 @@ jobs:
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Prepare GPG key
+        id: prepare_gpg
         run: |
           gpg --export > ~/.gnupg/pubring.gpg
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor > $HOME/secring.gpg
+          base64 -w 0 $HOME/secring.gpg > $HOME/secring.b64
+          echo "secring=$(cat $HOME/secring.b64)" >> "$GITHUB_OUTPUT"
           echo "${{ secrets.GPG_PASSPHRASE }}" > $HOME/passphrase.txt
           echo "CR_KEYRING=$HOME/secring.gpg" >> "$GITHUB_ENV"
           echo "CR_PASSPHRASE_FILE=$HOME/passphrase.txt" >> "$GITHUB_ENV"
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart
-        uses: helm/chart-releaser-action@v1.7.0
+        uses: bpsoraggi/helm-gh-pages@fea1912cca505819c4757e8232b6016cd4072120
         with:
+          token: ${{ secrets.GHCR_TOKEN }}
           charts_dir: .
-        env:
-          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CR_KEY:  ${{ steps.gpg.outputs.name }}
-          CR_SIGN: true
+          charts_url: https://bpsoraggi.github.io/charts
+          owner: bpsoraggi
+          repository: charts
+          branch: master
+          target_dir: traefik
+          index_dir: .
+          commit_username: bpsoraggi
+          commit_email: ${{ secrets.GH_EMAIL }}
+          key: ${{ steps.gpg.outputs.name }}
+          private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Publish Helm chart to the ghcr.io registry
-        uses: appany/helm-oci-chart-releaser@v0.5.0
-        with:
-          name: traefik
-          repository: bpsoraggi/helm
-          tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
-          path: ./traefik
-          registry: ghcr.io
-          registry_username: bpsoraggi
-          registry_password: ${{ secrets.GHCR_TOKEN }}
-          sign: true
-          signing_key: ${{ steps.gpg.outputs.name }}
-          signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          update_dependencies: 'true'
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Publish Helm chart to the ghcr.io registry
+      #   uses: appany/helm-oci-chart-releaser@v0.5.0
+      #   with:
+      #     name: traefik
+      #     repository: bpsoraggi/helm
+      #     tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
+      #     path: ./traefik
+      #     registry: ghcr.io
+      #     registry_username: bpsoraggi
+      #     registry_password: ${{ secrets.GHCR_TOKEN }}
+      #     sign: true
+      #     signing_key: ${{ steps.gpg.outputs.name }}
+      #     signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      #     update_dependencies: 'true'
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
   traefik-crds:
     runs-on: ubuntu-latest
@@ -259,27 +270,3 @@ jobs:
           registry_username: bpsoraggi
           registry_password: ${{ secrets.GHCR_TOKEN }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
-
-  sign-traefik-crds:
-    needs: [ traefik-crds ]
-    runs-on: ubuntu-latest
-    if: needs.traefik-crds.outputs.TAG_EXISTS == 'false'
-    permissions:
-      contents: read
-      # This is used to create the OIDC token for signing the Helm chart
-      id-token: write
-    steps:
-
-      - name: Login to GitHub Container Registry
-        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.9.1
-
-      - name: Sign Helm chart
-        run: |
-          cosign sign --yes \
-            -a version="${{ needs.traefik-crds.outputs.CHART_VERSION }}" \
-            -a commitSha="$GITHUB_SHA" \
-            -a buildDate="$(date +%F)" \
-            ghcr.io/bpsoraggi/helm/traefik-crds:${{ needs.traefik-crds.outputs.CHART_VERSION }}
