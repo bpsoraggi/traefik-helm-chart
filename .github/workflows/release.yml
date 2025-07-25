@@ -144,7 +144,7 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }} # Private key of the GPG key
           passphrase: ${{ secrets.GPG_PASSPHRASE }} # Passphrase for the key, if required
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       # Helm requires the legacy GPG format
       # @link https://helm.sh/docs/topics/provenance/#the-workflow
@@ -152,6 +152,7 @@ jobs:
         run: |
           gpg --export > ~/.gnupg/pubring.gpg
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
       - name: Chart | Push and sign
         uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
@@ -166,7 +167,7 @@ jobs:
           signing_key: ${{ steps.gpg.outputs.name }}
           signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
           update_dependencies: 'true' # Defaults to false
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       # helm pull ghcr.io/appany/my-chart:0.1.0
 
