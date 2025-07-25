@@ -110,33 +110,51 @@ jobs:
           rm -rf traefik-crds
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Prepare GPG key for signing
-        run: |
-          gpg_dir=.cr-gpg
-          mkdir "$gpg_dir"
-          keyring="$gpg_dir/secring.gpg"
-          echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 -d > "$keyring"
-          passphrase_file="$gpg_dir/passphrase"
-          echo "${{ secrets.GPG_PASSPHRASE }}" > "$passphrase_file"
-          echo "CR_PASSPHRASE_FILE=$passphrase_file" >> "$GITHUB_ENV"
-          echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV"
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Prepare GPG key for signing
+      #   run: |
+      #     gpg_dir=.cr-gpg
+      #     mkdir "$gpg_dir"
+      #     keyring="$gpg_dir/secring.gpg"
+      #     echo "${{ secrets.GPG_KEYRING_BASE64 }}" | base64 -d > "$keyring"
+      #     passphrase_file="$gpg_dir/passphrase"
+      #     echo "${{ secrets.GPG_PASSPHRASE }}" > "$passphrase_file"
+      #     echo "CR_PASSPHRASE_FILE=$passphrase_file" >> "$GITHUB_ENV"
+      #     echo "CR_KEYRING=$keyring" >> "$GITHUB_ENV"
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Publish Helm chart
-        uses: helm/chart-releaser-action@v1.7.0
+      # - name: Publish Helm chart
+      #   uses: helm/chart-releaser-action@v1.7.0
+      #   with:
+      #     charts_dir: .
+      #   env:
+      #     CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     CR_KEY: traefik-helm-sign-test
+      #     CR_SIGN: true
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+
+
+
+
+
+
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: gpg
         with:
-          charts_dir: .
-        env:
-          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CR_KEY: traefik-helm-sign-test
-          CR_SIGN: true
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }} # Private key of the GPG key
+          passphrase: ${{ secrets.GPG_PASSPHRASE }} # Passphrase for the key, if required
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      # - name: Login to GitHub Container Registry
-      #   run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
-
-      - name: Publish Helm chart to the ghcr.io registry
-        uses: appany/helm-oci-chart-releaser@v0.4.2
+      # Helm requires the legacy GPG format
+      # @link https://helm.sh/docs/topics/provenance/#the-workflow
+      - name: Convert GPG v2 key
+        run: |
+          gpg --export > ~/.gnupg/pubring.gpg
+          gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      - name: Chart | Push and sign
+        uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: traefik
           repository: bpsoraggi/helm
@@ -145,18 +163,42 @@ jobs:
           registry: ghcr.io
           registry_username: bpsoraggi
           registry_password: ${{ secrets.GHCR_TOKEN }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+          sign: true
+          signing_key: ${{ steps.gpg.outputs.name }}
+          signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          update_dependencies: 'true' # Defaults to false
+        # if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.9.1
+      # helm pull ghcr.io/appany/my-chart:0.1.0
 
-      - name: Sign Helm chart
-        run: |
-          cosign sign --yes \
-            -a version="${{ steps.chart_version.outputs.CHART_VERSION }}" \
-            -a commitSha="$GITHUB_SHA" \
-            -a buildDate="$(date +%F)" \
-            ghcr.io/bpsoraggi/helm/traefik:${{ steps.chart_version.outputs.CHART_VERSION }}
+
+
+
+      # - name: Login to GitHub Container Registry
+      #   run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+ 
+      # - name: Publish Helm chart to the ghcr.io registry
+      #   uses: appany/helm-oci-chart-releaser@v0.4.2
+      #   with:
+      #     name: traefik
+      #     repository: bpsoraggi/helm
+      #     tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
+      #     path: ./traefik
+      #     registry: ghcr.io
+      #     registry_username: bpsoraggi
+      #     registry_password: ${{ secrets.GHCR_TOKEN }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+
+      # - name: Install Cosign
+      #   uses: sigstore/cosign-installer@v3.9.1
+
+      # - name: Sign Helm chart
+      #   run: |
+      #     cosign sign --yes \
+      #       -a version="${{ steps.chart_version.outputs.CHART_VERSION }}" \
+      #       -a commitSha="$GITHUB_SHA" \
+      #       -a buildDate="$(date +%F)" \
+      #       ghcr.io/bpsoraggi/helm/traefik:${{ steps.chart_version.outputs.CHART_VERSION }}
 
   traefik-crds:
     runs-on: ubuntu-latest
