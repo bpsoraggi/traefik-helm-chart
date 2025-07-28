@@ -117,16 +117,10 @@ jobs:
         run: |
           gpg --export > ~/.gnupg/pubring.gpg
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor > $HOME/secring.gpg
-          base64 -w 0 $HOME/secring.gpg > $HOME/secring.b64
-          echo "secring=$(cat $HOME/secring.b64)" >> "$GITHUB_OUTPUT"
-          echo "${{ secrets.GPG_PASSPHRASE }}" > $HOME/passphrase.txt
-          echo "CR_KEYRING=$HOME/secring.gpg" >> "$GITHUB_ENV"
-          echo "CR_PASSPHRASE_FILE=$HOME/passphrase.txt" >> "$GITHUB_ENV"
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       - name: Publish Helm chart
-        uses: bpsoraggi/helm-gh-pages@fea1912cca505819c4757e8232b6016cd4072120
+        uses: bpsoraggi/helm-gh-pages@ae39446ad80fcb6ec81b125f3ce3da8890751297
         with:
           token: ${{ secrets.GHCR_TOKEN }}
           charts_dir: .
