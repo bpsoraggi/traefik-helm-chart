@@ -115,23 +115,23 @@ jobs:
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      # - name: Publish Helm chart
-      #   uses: bpsoraggi/helm-gh-pages@ae39446ad80fcb6ec81b125f3ce3da8890751297
-      #   with:
-      #     token: ${{ secrets.CHARTS_TOKEN }}
-      #     charts_dir: .
-      #     charts_url: https://traefik.github.io/charts
-      #     owner: traefik
-      #     repository: charts
-      #     branch: master
-      #     target_dir: traefik
-      #     index_dir: .
-      #     commit_username: traefiker
-      #     commit_email: 30906710+traefiker@users.noreply.github.com
-      #     key: ${{ steps.gpg.outputs.name }}
-      #     private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-      #     passphrase: ${{ secrets.GPG_PASSPHRASE }}
-      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      - name: Publish Helm chart
+        uses: bpsoraggi/helm-gh-pages@144dd827bf5cd326785b15fa1385ffeb5dfd7eb7
+        with:
+          token: ${{ secrets.CHARTS_TOKEN }}
+          charts_dir: .
+          charts_url: https://bpsoraggi.github.io/charts
+          owner: bpsoraggi
+          repository: charts
+          branch: master
+          target_dir: traefik
+          index_dir: .
+          commit_username: bpsoraggi
+          commit_email: ${{ secrets.GH_EMAIL }}
+          key: ${{ steps.gpg.outputs.name }}
+          private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
       # - name: Publish Helm chart to the ghcr.io registry
       #   uses: appany/helm-oci-chart-releaser@v0.5.0
