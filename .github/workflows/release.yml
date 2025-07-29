@@ -3,7 +3,7 @@ name: Release Charts
 on:
   push:
     branches:
-      - master
+      - fix/signed-release-test
 
 env:
   tag_prefix: v
@@ -115,45 +115,45 @@ jobs:
           gpg --batch --pinentry-mode loopback --yes --passphrase '${{ secrets.GPG_PASSPHRASE }}' --export-secret-key > ~/.gnupg/secring.gpg
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Publish Helm chart
-        uses: bpsoraggi/helm-gh-pages@ae39446ad80fcb6ec81b125f3ce3da8890751297
-        with:
-          token: ${{ secrets.CHARTS_TOKEN }}
-          charts_dir: .
-          charts_url: https://traefik.github.io/charts
-          owner: traefik
-          repository: charts
-          branch: master
-          target_dir: traefik
-          index_dir: .
-          commit_username: traefiker
-          commit_email: 30906710+traefiker@users.noreply.github.com
-          key: ${{ steps.gpg.outputs.name }}
-          private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Publish Helm chart
+      #   uses: bpsoraggi/helm-gh-pages@ae39446ad80fcb6ec81b125f3ce3da8890751297
+      #   with:
+      #     token: ${{ secrets.CHARTS_TOKEN }}
+      #     charts_dir: .
+      #     charts_url: https://traefik.github.io/charts
+      #     owner: traefik
+      #     repository: charts
+      #     branch: master
+      #     target_dir: traefik
+      #     index_dir: .
+      #     commit_username: traefiker
+      #     commit_email: 30906710+traefiker@users.noreply.github.com
+      #     key: ${{ steps.gpg.outputs.name }}
+      #     private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+      #     passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Publish Helm chart to the ghcr.io registry
-        uses: appany/helm-oci-chart-releaser@v0.5.0
-        with:
-          name: traefik
-          repository: traefik/helm
-          tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
-          path: ./traefik
-          registry: ghcr.io
-          registry_username: traefiker
-          registry_password: ${{ secrets.GHCR_TOKEN }}
-          sign: true
-          signing_key: ${{ steps.gpg.outputs.name }}
-          signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Publish Helm chart to the ghcr.io registry
+      #   uses: appany/helm-oci-chart-releaser@v0.5.0
+      #   with:
+      #     name: traefik
+      #     repository: traefik/helm
+      #     tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
+      #     path: ./traefik
+      #     registry: ghcr.io
+      #     registry_username: traefiker
+      #     registry_password: ${{ secrets.GHCR_TOKEN }}
+      #     sign: true
+      #     signing_key: ${{ steps.gpg.outputs.name }}
+      #     signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
-      - name: Trigger hub-doc synchronization workflow
-        env:
-          GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        run: |
-          gh workflow run -R traefik/hub-doc "🏗️ Sync helm-chart" -F CHART_VERSION=${{ steps.tag_version.outputs.new_tag }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Trigger hub-doc synchronization workflow
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      #   run: |
+      #     gh workflow run -R traefik/hub-doc "🏗️ Sync helm-chart" -F CHART_VERSION=${{ steps.tag_version.outputs.new_tag }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
   traefik-crds:
     runs-on: ubuntu-latest
@@ -256,31 +256,31 @@ jobs:
         with:
           token: ${{ secrets.CHARTS_TOKEN }}
           charts_dir: .
-          charts_url: https://traefik.github.io/charts
-          owner: traefik
+          charts_url: https://bpsoraggi.github.io/charts
+          owner: bpsoraggi
           repository: charts
           branch: master
           target_dir: traefik-crds
           index_dir: .
-          commit_username: traefiker
-          commit_email: 30906710+traefiker@users.noreply.github.com
+          commit_username: bpsoraggi
+          commit_email: ${{ secrets.GH_EMAIL }}
           key: ${{ steps.gpg.outputs.email }}
           private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false' && steps.gpg.outputs.email != ''
 
-      - name: Publish Helm chart to the ghcr.io registry
-        uses: appany/helm-oci-chart-releaser@v0.5.0
-        with:
-          name: traefik-crds
-          repository: traefik/helm
-          tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
-          path: ./traefik-crds
-          registry: ghcr.io
-          registry_username: traefiker
-          registry_password: ${{ secrets.GHCR_TOKEN }}
-          sign: true
-          signing_key: ${{ steps.gpg.outputs.name }}
-          signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
+      # - name: Publish Helm chart to the ghcr.io registry
+      #   uses: appany/helm-oci-chart-releaser@v0.5.0
+      #   with:
+      #     name: traefik-crds
+      #     repository: traefik/helm
+      #     tag: ${{ steps.chart_version.outputs.CHART_VERSION }}
+      #     path: ./traefik-crds
+      #     registry: ghcr.io
+      #     registry_username: traefiker
+      #     registry_password: ${{ secrets.GHCR_TOKEN }}
+      #     sign: true
+      #     signing_key: ${{ steps.gpg.outputs.name }}
+      #     signing_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      #   if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
 
