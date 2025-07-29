@@ -128,7 +128,7 @@ jobs:
           index_dir: .
           commit_username: bpsoraggi
           commit_email: ${{ secrets.GH_EMAIL }}
-          key: ${{ steps.gpg.outputs.name }}
+          key: ${{ steps.gpg.outputs.email }}
           private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
         if: steps.tag_exists.outputs.TAG_EXISTS == 'false'
